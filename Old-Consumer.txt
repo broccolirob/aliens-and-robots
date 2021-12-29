@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.6;
+
+import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
+import "@chainlink/contracts/src/v0.6/Oracle.sol";
+
+contract Consumer is ChainlinkClient, Ownable {
+  using Chainlink for Chainlink.Request;
+
+  bytes32 private jobId = "77a24fe65a0944c8b8dec91e43639ce3";
+  uint256 private fee = 0.1 * 10 ** 18;
+  address private registry;
+
+  constructor(address _oracle) public {
+    setPublicChainlinkToken();
+    setChainlinkOracle(_oracle);
+  }
+
+  function validateName(string memory _name) public returns (bytes32) {
+    require(msg.sender == registry, "Only valid registry can call");
+    Chainlink.Request memory request = buildChainlinkRequest(jobId, address(this), this.fulfillValidateName.selector);
+    request.add("queryParams", string(abi.encodePacked("name=", _name)));
+    return sendChainlinkRequest(request, fee);
+  }
+
+  function fulfillValidateName(bytes32 _requestId, bool _clean) public recordChainlinkFulfillment(_requestId) returns (bool success_) {
+    (success_,) = registry.call(abi.encodeWithSignature("fulfillRequest(bytes32,bool)", _requestId, _clean));
+  }
+
+  function setRegistry(address _registry) external onlyOwner {
+    registry = _registry;
+  }
+
+  function updateJobId(bytes32 _jobId) external onlyOwner {
+    jobId = _jobId;
+  }
+
+  function updateFee(uint256 _fee) external onlyOwner {
+    fee = _fee;
+  }
+
+  function withdrawalLink() external onlyOwner {
+    LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
+    link.transfer(owner(), link.balanceOf(address(this)));
+  }
+}

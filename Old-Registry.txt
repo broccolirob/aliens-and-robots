@@ -1,0 +1,49 @@
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.4;
+
+import '@openzeppelin/contracts/metatx/ERC2771Context.sol';
+import '@openzeppelin/contracts/metatx/MinimalForwarder.sol';
+import {IConsumer} from './interfaces/IConsumer.sol';
+
+contract Registry is ERC2771Context {
+  IConsumer private request;
+
+  struct Pending {
+    string name;
+    address owner;
+  }
+
+  mapping(address => string) public names;
+  mapping(string => address) public owners;
+  mapping(bytes32 => Pending) public requests;
+
+  event Registered(address indexed who, string name);
+  event Rejected(address indexed who, string name);
+
+  constructor(MinimalForwarder _forwarder, address _consumer)
+    ERC2771Context(address(_forwarder))
+  {
+    request = IConsumer(_consumer);
+  }
+
+  function register(string memory name) external {
+    require(owners[name] == address(0), 'That name is already taken');
+    address owner = _msgSender();
+    bytes32 requestId = request.validateName(name);
+    requests[requestId] = Pending(name, owner);
+  }
+
+  function fulfillRequest(bytes32 _requestId, bool _clean) public {
+    Pending memory pending = requests[_requestId];
+    string memory name = pending.name;
+    address owner = pending.owner;
+    if (_clean) {
+      owners[name] = owner;
+      names[owner] = name;
+      emit Registered(owner, name);
+    } else {
+      emit Rejected(owner, name);
+    }
+    delete requests[_requestId];
+  }
+}
