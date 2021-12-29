@@ -61,5 +61,10 @@
     "rollup": "^2.61.1",
     "solhint": "^3.3.6",
     "solidity-coverage": "^0.7.17"
+  },
+  "dependencies": {
+    "bad-words": "^3.0.4",
+    "serverless": "^2.70.0",
+    "serverless-bundle": "^5.2.0"
   }
 }
