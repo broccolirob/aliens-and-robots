@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.11;
 
-import {ChainlinkClient} from '@chainlink/contracts/src/v0.8/ChainlinkClient.sol';
+import '@chainlink/contracts/src/v0.8/ChainlinkClient.sol';
 import {LinkTokenInterface} from '@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol';
 import {Initializable} from '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import {AccessControlUpgradeable} from '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
@@ -14,6 +14,8 @@ contract Controller is
   AccessControlUpgradeable,
   ChainlinkClient
 {
+  using Chainlink for Chainlink.Request;
+
   address public vrf;
   address public oracle;
   bytes32 public keyHash;
@@ -26,6 +28,8 @@ contract Controller is
 
   mapping(bytes32 => uint256) private nonces;
   mapping(bytes32 => uint256) private requestIdToTokenId;
+  mapping(bytes32 => string) private requestIdToName;
+  mapping(string => bool) public validName;
 
   constructor() initializer {}
 
@@ -54,6 +58,32 @@ contract Controller is
     __AccessControl_init();
     __ReentrancyGuard_init();
     _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+  }
+
+  function updateJobId(bytes32 _jobId) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    jobId = _jobId;
+  }
+
+  function validateName(string memory _name)
+    external
+    returns (bytes32 requestId)
+  {
+    Chainlink.Request memory request = buildChainlinkRequest(
+      jobId,
+      address(this),
+      this.fulfill.selector
+    );
+    request.add('name', _name);
+    requestId = sendChainlinkRequestTo(oracle, request, oracleFee);
+    requestIdToName[requestId] = _name;
+  }
+
+  function fulfill(bytes32 requestId, bool value)
+    public
+    recordChainlinkFulfillment(requestId)
+  {
+    string memory name = requestIdToName[requestId];
+    validName[name] = value;
   }
 
   function createCharacter() external payable nonReentrant {

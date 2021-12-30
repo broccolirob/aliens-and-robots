@@ -10,12 +10,9 @@ plugins:
 provider:
   name: aws
   runtime: nodejs14.x
-  lambdaHashingVersion: '20201221'
 
 functions:
   validate:
     handler: server/validate.handler
     events:
-      - http:
-          path: validate
-          method: get
+      - httpApi: 'POST /validate'
