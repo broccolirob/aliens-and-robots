@@ -64,7 +64,7 @@ contract Controller is
     jobId = _jobId;
   }
 
-  function validateName(string memory _name)
+  function validateName(string calldata _name)
     external
     returns (bytes32 requestId)
   {

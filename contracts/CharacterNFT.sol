@@ -56,6 +56,13 @@ contract CharacterNFT is
   CountersUpgradeable.Counter private _tokenIdCounter;
   mapping(Type => string[]) private _images;
   mapping(uint256 => Character) private _characters;
+  mapping(string => bool) private _characterNamesUsed;
+
+  event SetCharacterName(
+    uint256 indexed _tokenId,
+    string _oldName,
+    string _newName
+  );
 
   constructor() initializer {}
 
@@ -80,12 +87,32 @@ contract CharacterNFT is
     _grantRole(UPGRADER_ROLE, msg.sender);
   }
 
-  function pause() public onlyRole(PAUSER_ROLE) {
-    _pause();
+  function characterNameAvailable(string calldata _name)
+    external
+    view
+    returns (bool available_)
+  {
+    available_ = !_characterNamesUsed[_validateAndLowerName(_name)];
   }
 
-  function unpause() public onlyRole(PAUSER_ROLE) {
-    _unpause();
+  function setCharacterName(uint256 _tokenId, string calldata _name)
+    external
+    onlyRole(MINTER_ROLE)
+  {
+    require(_msgSender() == ownerOf(_tokenId), 'ERC721: only token owner');
+    require(
+      _characters[_tokenId].status == Status.Unnamed,
+      'ERC721: must be unnamed'
+    );
+    string memory lowerName = _validateAndLowerName(_name);
+    string memory existingName = _characters[_tokenId].name;
+    if (bytes(existingName).length > 0) {
+      delete _characterNamesUsed[_validateAndLowerName(existingName)];
+    }
+    require(!_characterNamesUsed[lowerName], 'ERC721: name used already');
+    _characterNamesUsed[lowerName] = true;
+    _characters[_tokenId].name = _name;
+    emit SetCharacterName(_tokenId, existingName, _name);
   }
 
   function safeMint(address to)
@@ -167,6 +194,50 @@ contract CharacterNFT is
     );
   }
 
+  function pause() public onlyRole(PAUSER_ROLE) {
+    _pause();
+  }
+
+  function unpause() public onlyRole(PAUSER_ROLE) {
+    _unpause();
+  }
+
+  function supportsInterface(bytes4 interfaceId)
+    public
+    view
+    override(
+      ERC721Upgradeable,
+      ERC721EnumerableUpgradeable,
+      AccessControlUpgradeable
+    )
+    returns (bool)
+  {
+    return super.supportsInterface(interfaceId);
+  }
+
+  function _validateAndLowerName(string memory _name)
+    internal
+    pure
+    returns (string memory)
+  {
+    bytes memory name = abi.encodePacked(_name);
+    uint256 len = name.length;
+    require(len != 0, 'ERC721: name is empty');
+    require(len < 26, 'ERC721: name too long');
+    uint256 char = uint256(uint8(name[0]));
+    require(char != 32, 'ERC721: no padding - start');
+    char = uint256(uint8(name[len - 1]));
+    require(char != 32, 'ERC721: no padding - end');
+    for (uint256 i; i < len; i++) {
+      char = uint256(uint8(name[i]));
+      require(char > 31 && char < 127, 'ERC721: invalid character');
+      if (char < 91 && char > 64) {
+        name[i] = bytes1(uint8(char + 32));
+      }
+    }
+    return string(name);
+  }
+
   function _baseURI() internal pure override returns (string memory) {
     return 'https://gateway.pinata.cloud/ipfs/';
   }
@@ -194,18 +265,5 @@ contract CharacterNFT is
     override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
   {
     super._burn(tokenId);
-  }
-
-  function supportsInterface(bytes4 interfaceId)
-    public
-    view
-    override(
-      ERC721Upgradeable,
-      ERC721EnumerableUpgradeable,
-      AccessControlUpgradeable
-    )
-    returns (bool)
-  {
-    return super.supportsInterface(interfaceId);
   }
 }
