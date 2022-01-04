@@ -65,6 +65,7 @@
     "solidity-coverage": "^0.7.17"
   },
   "dependencies": {
+    "axios": "^0.24.0",
     "bad-words": "^3.0.4",
     "serverless": "^3.0.0-pre.7cd71b9a",
     "serverless-bundle": "^5.2.0"

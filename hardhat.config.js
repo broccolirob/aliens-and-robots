@@ -1,22 +1,22 @@
-require('dotenv').config()
-require('@nomiclabs/hardhat-ethers')
-require('@nomiclabs/hardhat-waffle')
-require('hardhat-deploy-tenderly')
-require('hardhat-gas-reporter')
-require('hardhat-deploy')
-require('solidity-coverage')
-require('hardhat-docgen')
-require('./tasks/accounts')
-require('./tasks/balance')
-require('./tasks/block-number')
-require('./tasks/tenderly-verify')
+require("dotenv").config();
+require("@nomiclabs/hardhat-ethers");
+require("@nomiclabs/hardhat-waffle");
+require("hardhat-deploy-tenderly");
+require("hardhat-gas-reporter");
+require("hardhat-deploy");
+require("solidity-coverage");
+require("hardhat-docgen");
+require("./tasks/accounts");
+require("./tasks/balance");
+require("./tasks/block-number");
+require("./tasks/tenderly-verify");
 
 module.exports = {
-  defaultNetwork: 'rinkeby',
+  defaultNetwork: "rinkeby",
   solidity: {
     compilers: [
       {
-        version: '0.8.11',
+        version: "0.8.11",
         settings: {
           optimizer: {
             enabled: true,
@@ -25,7 +25,7 @@ module.exports = {
         },
       },
       {
-        version: '0.7.6',
+        version: "0.7.6",
         settings: {
           optimizer: {
             enabled: true,
@@ -42,7 +42,7 @@ module.exports = {
       },
     },
     localhost: {
-      url: 'http://localhost:8545',
+      url: "http://localhost:8545",
     },
     rinkeby: {
       url: process.env.RINKEBY_URL,
@@ -79,11 +79,11 @@ module.exports = {
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
     coinmarketcap: process.env.COINMARKETCAP_KEY,
-    currency: 'USD',
+    currency: "USD",
   },
   docgen: {
-    path: './docs',
+    path: "./docs",
     clear: true,
     except: [],
   },
-}
+};
